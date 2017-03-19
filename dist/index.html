@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="x-ua-compatible" content="IE=edge">
-  <title>Swagger UI</title>
+  <title>Swagger UI for AWS_IAM Auth</title>
   <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32" />
   <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16" />
   <link href='css/typography.css' media='screen' rel='stylesheet' type='text/css'/>
@@ -27,6 +27,10 @@
   <script src='lib/marked.js' type='text/javascript'></script>
   <script src='lib/swagger-oauth.js' type='text/javascript'></script>
 
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.20.min.js"></script>
+  <script src="client_authorization-sigv4.js"></script>
+
+
   <!-- Some basic translations -->
   <!-- <script src='lang/translator.js' type='text/javascript'></script> -->
   <!-- <script src='lang/ru.js' type='text/javascript'></script> -->
@@ -49,10 +53,16 @@
       if(window.SwaggerTranslator) {
         window.SwaggerTranslator.translate();
       }
+
+      var creds = new AWS.Credentials('','');
+      var signer = new AWSSigv4RequestSigner(creds, AWS);
+
       window.swaggerUi = new SwaggerUi({
         url: url,
+        validatorUrl: null,
         dom_id: "swagger-ui-container",
         supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+        authorizations: { 'sigv4' : signer},
         onComplete: function(swaggerApi, swaggerUi){
           if(typeof initOAuth == "function") {
             initOAuth({
@@ -73,10 +83,26 @@
           log("Unable to Load SwaggerUI");
         },
         docExpansion: "none",
-        jsonEditor: false,
+        jsonEditor: true,
         defaultModelRendering: 'schema',
         showRequestHeaders: false,
         showOperationIds: false
+      });
+
+      $("#explore").off('click');
+      $("#explore").click(function() {
+
+        creds.accessKeyId = $("#aws_ak").val();
+        creds.secretAccessKey = $("#aws_sk").val();
+        var region =  $("#aws_region").val();
+        var api_id =  $("#aws_api_id").val();
+        var stage =  $("#aws_stage").val();
+        AWS.config.region = region;
+
+        var url = "https://apigateway.{REGION}.amazonaws.com/restapis/{API_ID}/stages/{STAGE_NAME}/exports/swagger".
+        replace("{REGION}", region).replace("{API_ID}", api_id).replace("{STAGE_NAME}", stage); 
+        window.swaggerUi.updateSwaggerUi({url : url});
+
       });
 
       window.swaggerUi.load();
@@ -93,10 +119,25 @@
 <body class="swagger-section">
 <div id='header'>
   <div class="swagger-ui-wrap">
-    <a id="logo" href="http://swagger.io"><img class="logo__img" alt="swagger" height="30" width="30" src="images/logo_small.png" /><span class="logo__title">swagger</span></a>
+    <a id="logo" href="http://swagger.io"><img class="logo__img" alt="swagger" height="30" width="30" src="images/logo_small.png" /><span class="logo__title"></span></a>
     <form id='api_selector'>
-      <div class='input'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
-      <div id='auth_container'></div>
+      <select id="aws_region">
+        <option value="us-east-1">us-east-1</option>
+        <option value="us-east-2">us-east-2</option>
+        <option value="us-west-1">us-west-1</option>
+        <option value="us-west-2">us-west-2</option>
+        <option value="ap-northeast-1">ap-northeast-1</option>
+        <option value="ap-northeast-2">ap-northeast-2</option>
+        <option value="ap-southeast-1">ap-southeast-1</option>
+        <option value="ap-southeast-2">ap-southeast-2</option>
+        <option value="eu-central-1">eu-central-1</option>
+        <option value="eu-west-1">eu-west-1</option>
+        <option value="us-west-2">us-west-2</option>
+      </select>
+      <input placeholder="API ID(10 chars)" id="aws_api_id" type="text"/>
+      <input placeholder="Stage Name" id="aws_stage" type="text"/>
+      <input placeholder="AccessKey" id="aws_ak" type="text"/>
+      <input placeholder="SecretKey" id="aws_sk" type="text"/>
       <div class='input'><a id="explore" class="header__btn" href="#" data-sw-translate>Explore</a></div>
     </form>
   </div>
