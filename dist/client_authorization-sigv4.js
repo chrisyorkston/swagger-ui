@@ -9,7 +9,7 @@ AWSSigv4RequestSigner.prototype.apply = function(options, authorizations) {
   var serviceName = "execute-api";
 
   //If we are loading the definition itself, then we need to sign for apigateway.
-  if (options && options.url.indexOf("apigateway") >= 0) {
+  if (typeof options != 'undefined' && options != null && options.url.indexOf("apigateway") >= 0) {
     serviceName = "apigateway";
   }
 
